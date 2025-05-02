@@ -1,6 +1,7 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from website_comparison import compare_websites
 from flask_cors import CORS
+import os
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -27,6 +28,11 @@ def compare_websites_api():
     except Exception as e:
         print(f"Error processing request: {str(e)}")
         return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+# Route to serve screenshot files
+@app.route('/screenshots/<path:path>')
+def serve_screenshots(path):
+    return send_from_directory('screenshots', path)
 
 # Run the Flask app
 if __name__ == "__main__":

@@ -345,7 +345,7 @@ const VisionImprovementsPage = () => {
                       <div className="p-4">
                         <div className="relative rounded-lg overflow-hidden border border-gray-700">
                           <img 
-                            src={websiteData.websites[activeWebsite].screenshot} 
+                            src={`http://localhost:5000/screenshots/${websiteData.websites[activeWebsite].name.toLowerCase().replace(/\s+/g, '_')}/${websiteData.websites[activeWebsite].name.toLowerCase().replace(/\s+/g, '_')}_full.png`} 
                             alt={`${websiteData.websites[activeWebsite].name} screenshot`}
                             className="w-full h-auto"
                           />
