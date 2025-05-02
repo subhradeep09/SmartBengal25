@@ -59,11 +59,20 @@ const VisionImprovementsPage = () => {
       setLoading(true);
       
       try {
-        // Check if we have cached data in localStorage
-        const cachedData = localStorage.getItem('websiteComparisonData');
+        // Store a session key in sessionStorage to track the current browsing session
+        if (!sessionStorage.getItem('sessionId')) {
+          sessionStorage.setItem('sessionId', Date.now().toString());
+        }
         
-        if (cachedData) {
-          console.log('Using cached website comparison data');
+        // Check if we have cached data in localStorage for the current session
+        const cachedData = localStorage.getItem('websiteComparisonData');
+        const cachedTimestamp = localStorage.getItem('websiteComparisonTimestamp');
+        const sessionId = sessionStorage.getItem('sessionId');
+        const cachedSessionId = localStorage.getItem('websiteComparisonSessionId');
+        
+        // Only use cached data if it's from the current session
+        if (cachedData && cachedSessionId === sessionId) {
+          console.log('Using cached website comparison data from current session');
           const parsedData = JSON.parse(cachedData);
           
           // Map the data to the format needed for display
@@ -76,8 +85,8 @@ const VisionImprovementsPage = () => {
           return;
         }
         
-        // No cached data, make the API request
-        console.log('No cached data, fetching from API');
+        // No cached data for current session, make the API request
+        console.log('No cached data for current session, fetching from API');
         
         // Example websites to analyze - you would get this from user input or previous step
         const websites = [
@@ -94,8 +103,10 @@ const VisionImprovementsPage = () => {
         
         console.log('API Response:', response.data);
         
-        // Cache the response in localStorage for future use
+        // Cache the response in localStorage for future use with the current session ID
         localStorage.setItem('websiteComparisonData', JSON.stringify(response.data));
+        localStorage.setItem('websiteComparisonTimestamp', Date.now().toString());
+        localStorage.setItem('websiteComparisonSessionId', sessionId);
         
         // Map the data to the format needed for display
         const formattedData = {
@@ -149,6 +160,9 @@ const VisionImprovementsPage = () => {
   // Function to clear cached data (for testing)
   const clearCache = () => {
     localStorage.removeItem('websiteComparisonData');
+    localStorage.removeItem('websiteComparisonTimestamp');
+    localStorage.removeItem('websiteComparisonSessionId');
+    sessionStorage.removeItem('sessionId');
     window.location.reload();
   };
   

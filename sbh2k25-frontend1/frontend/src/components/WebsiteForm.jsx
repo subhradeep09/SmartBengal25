@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const WebsiteForm = ({ onSubmit, loading }) => {
   const [websites, setWebsites] = useState([
@@ -9,10 +9,39 @@ const WebsiteForm = ({ onSubmit, loading }) => {
   const [category, setCategory] = useState('ecommerce');
   const [error, setError] = useState('');
 
+  // Load saved form data on component mount
+  useEffect(() => {
+    const savedWebsites = sessionStorage.getItem('websiteFormData');
+    const savedCategory = sessionStorage.getItem('websiteFormCategory');
+    
+    if (savedWebsites) {
+      try {
+        const parsedWebsites = JSON.parse(savedWebsites);
+        setWebsites(parsedWebsites);
+      } catch (err) {
+        console.error('Error parsing saved website form data:', err);
+      }
+    }
+    
+    if (savedCategory) {
+      setCategory(savedCategory);
+    }
+  }, []);
+
   const handleWebsiteChange = (index, field, value) => {
     const updatedWebsites = [...websites];
     updatedWebsites[index][field] = value;
     setWebsites(updatedWebsites);
+    
+    // Save to sessionStorage to persist between page navigations
+    sessionStorage.setItem('websiteFormData', JSON.stringify(updatedWebsites));
+  };
+  
+  const handleCategoryChange = (value) => {
+    setCategory(value);
+    
+    // Save to sessionStorage to persist between page navigations
+    sessionStorage.setItem('websiteFormCategory', value);
   };
 
   const handleSubmit = (e) => {
@@ -61,7 +90,7 @@ const WebsiteForm = ({ onSubmit, loading }) => {
               <select 
                 className="w-full bg-gray-900/70 border border-gray-700 text-gray-300 rounded-lg py-2.5 px-4 appearance-none focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => handleCategoryChange(e.target.value)}
               >
                 {categories.map(cat => (
                   <option key={cat.value} value={cat.value}>{cat.label}</option>

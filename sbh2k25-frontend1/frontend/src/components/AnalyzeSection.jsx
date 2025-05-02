@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import WebsiteForm from './WebsiteForm';
 import ResultsDisplay from './ResultsDisplay';
 
@@ -6,6 +6,38 @@ const AnalyzeSection = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [results, setResults] = useState(null);
+
+  // Check for existing data on mount
+  useEffect(() => {
+    // Store a session key in sessionStorage to track the current browsing session
+    if (!sessionStorage.getItem('sessionId')) {
+      sessionStorage.setItem('sessionId', Date.now().toString());
+    }
+    
+    // Check if we have cached data in localStorage for the current session
+    const cachedData = localStorage.getItem('websiteComparisonData');
+    const cachedSessionId = localStorage.getItem('websiteComparisonSessionId');
+    const currentSessionId = sessionStorage.getItem('sessionId');
+    
+    // Only use cached data if it's from the current session
+    if (cachedData && cachedSessionId === currentSessionId) {
+      console.log('Using cached website comparison data from current session');
+      try {
+        const parsedData = JSON.parse(cachedData);
+        setResults(parsedData);
+        
+        // Scroll to results if they exist
+        setTimeout(() => {
+          const resultsElement = document.getElementById('results');
+          if (resultsElement) {
+            resultsElement.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      } catch (err) {
+        console.error('Error parsing cached data:', err);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (websites, category) => {
     setLoading(true);
@@ -29,9 +61,14 @@ const AnalyzeSection = () => {
 
       const data = await response.json();
       
-      // Save the response to localStorage for reuse by other components
+      // Get the current session ID
+      const sessionId = sessionStorage.getItem('sessionId');
+      
+      // Save the response to localStorage for reuse by other components with session info
       localStorage.setItem('websiteComparisonData', JSON.stringify(data));
-      console.log('API data cached in localStorage');
+      localStorage.setItem('websiteComparisonTimestamp', Date.now().toString());
+      localStorage.setItem('websiteComparisonSessionId', sessionId);
+      console.log('API data cached in localStorage with session ID', sessionId);
       
       setResults(data);
       
@@ -46,6 +83,40 @@ const AnalyzeSection = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle storage change event (if data is updated in another tab/component)
+  const handleStorageChange = (e) => {
+    if (e.key === 'websiteComparisonData' && e.newValue) {
+      try {
+        const newData = JSON.parse(e.newValue);
+        const currentSessionId = sessionStorage.getItem('sessionId');
+        const dataSessionId = localStorage.getItem('websiteComparisonSessionId');
+        
+        // Only update if the data is from the current session
+        if (dataSessionId === currentSessionId) {
+          setResults(newData);
+        }
+      } catch (err) {
+        console.error('Error parsing stored data:', err);
+      }
+    }
+  };
+  
+  // Add storage event listener when component mounts
+  useEffect(() => {
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // Function to clear cached data (for testing)
+  const clearCache = () => {
+    localStorage.removeItem('websiteComparisonData');
+    localStorage.removeItem('websiteComparisonTimestamp');
+    localStorage.removeItem('websiteComparisonSessionId');
+    setResults(null);
   };
 
   return (
@@ -75,6 +146,18 @@ const AnalyzeSection = () => {
           <p className="text-gray-400 max-w-2xl mx-auto">
             Compare multiple websites and get detailed design analysis with our AI-powered tool.
           </p>
+          
+          {/* Dev controls for clearing cache */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-2">
+              <button 
+                onClick={clearCache} 
+                className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 px-2 py-1 rounded"
+              >
+                Clear Cached Data (Dev Only)
+              </button>
+            </div>
+          )}
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
