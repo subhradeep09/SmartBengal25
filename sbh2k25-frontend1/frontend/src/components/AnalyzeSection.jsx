@@ -28,6 +28,11 @@ const AnalyzeSection = () => {
       }
 
       const data = await response.json();
+      
+      // Save the response to localStorage for reuse by other components
+      localStorage.setItem('websiteComparisonData', JSON.stringify(data));
+      console.log('API data cached in localStorage');
+      
       setResults(data);
       
       // Scroll to results

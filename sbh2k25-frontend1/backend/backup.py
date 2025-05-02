@@ -423,13 +423,13 @@ def compare_websites_combined(websites, category):
     with sync_playwright() as p:
         browser = p.firefox.launch(headless=True)
         context = browser.new_context(viewport={"width": 1280, "height": 3000})
-
+        
         for site in websites:
             name, url = site['name'], site['url']
             page = context.new_page()
             sections = capture_sections_and_fullpage(page, url, name)
             page.close()
-
+            
             if sections:
                 website_data.append({
                     "name": name,
@@ -500,8 +500,7 @@ def compare_websites(websites, category):
         context = browser.new_context(viewport={"width": 1280, "height": 3000})
 
         for site in websites:
-            name = site['name']
-            url = site['url']
+            name, url = site['name'], site['url']
             page = context.new_page()
             sections = capture_sections_and_fullpage(page, url, name)
             page.close()
@@ -519,7 +518,7 @@ def compare_websites(websites, category):
     for site in website_data:
         name = site["name"]
         sections = site["sections"]
-
+        
         for section_type in ["header", "main", "footer", "full"]:
             image_path = sections.get(section_type)
             if image_path:
@@ -531,65 +530,10 @@ def compare_websites(websites, category):
                     "score": result["clip_score"],
                     "criteria": result["criteria_scores"]
                 })
-
+    
     # Now get Gemini scores for full-page analysis of sections
     print("\nGetting Gemini scores...")
-    
-    # Prepare input for Gemini API
-    gemini_input = []
-    for site in website_data:
-        full_path = site["sections"].get("full")
-        if full_path:
-            gemini_input.append({
-                "name": site["name"],
-                "url": site["url"],
-                "full_path": full_path
-            })
-    
-    # Call Gemini API to get vision improvements and section scores
-    gemini_results = analyze_websites_with_gemini(gemini_input, category)
-    
-    # Extract websites from Gemini results
-    gemini_website_data = {}
-    if "websites" in gemini_results:
-        for website in gemini_results["websites"]:
-            name = website.get("name")
-            gemini_website_data[name] = website
-    
-    # Add vision improvements directly to the result
-    all_scores["websites"] = gemini_results.get("websites", [])
-    all_scores["comparison"] = gemini_results.get("comparison", {})
-    
-    # Get section scores from Gemini
-    gemini_scores = {}
-    
-    for name, website in gemini_website_data.items():
-        sections = website.get("sections", {})
-        
-        if name not in gemini_scores:
-            gemini_scores[name] = {}
-        
-        # Map Gemini section names to our section types
-        section_mapping = {
-            "header": "header",
-            "main_content": "main",
-            "footer": "footer"
-        }
-        
-        # Add overall score
-        gemini_scores[name]["full"] = {
-            "score": website.get("overall_score", 0) / 10.0,  # Convert to 0-1 scale
-            "details": website
-        }
-        
-        # Add section scores
-        for gemini_section, our_section in section_mapping.items():
-            if gemini_section in sections:
-                section_data = sections[gemini_section]
-                gemini_scores[name][our_section] = {
-                    "score": section_data.get("score", 0) / 10.0,  # Convert to 0-1 scale
-                    "details": section_data
-                }
+    gemini_scores = get_gemini_scores(website_data, category)
     
     # Combine CLIP and Gemini scores
     print("\nCombining CLIP and Gemini scores...")
@@ -652,7 +596,7 @@ def compare_websites(websites, category):
         overall = sections.get("full", 0)
         
         print(f"{name:<10} {header:<10.3f} {main:<10.3f} {footer:<10.3f} {overall:<10.3f}")
-
+    
     return all_scores
 
 # Example usage
